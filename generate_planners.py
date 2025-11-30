@@ -4,11 +4,22 @@ import calendar
 import os
 import sys
 import datetime
+import holidays
 
 
-def generate_planners(year=2025, output_dir="output_2025"):
+def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
+
+    # Initialize Holidays
+    try:
+        # Load holidays for current and next year to cover mini-calendars
+        country_holidays = holidays.country_holidays(
+            country_code, years=[year, year + 1]
+        )
+    except Exception as e:
+        print(f"Error initializing holidays for {country_code}: {e}")
+        country_holidays = {}
 
     # Initialize Hershey Fonts
     hf_title = HersheyFonts()
@@ -156,6 +167,34 @@ def generate_planners(year=2025, output_dir="output_2025"):
                     align="center",
                 )
 
+        def draw_holiday_underline(
+            dwg, x_right, y_center, day, stroke_width=0.15
+        ):
+            # Calculate center based on draw_number_monospaced logic
+            # digit_width = size * 0.7 = 1.5 * 0.7 = 1.05
+            digit_width = 1.05
+
+            if day < 10:
+                center_x = x_right - (digit_width / 2)
+            else:
+                center_x = x_right - digit_width
+                # Balance adjustment for 10-19 (narrow '1')
+                if 10 <= day <= 19:
+                    center_x += 0.2  # Shift right to balance the visual weight
+
+            # Fixed width 1.6mm (center +/- 0.8) to be compact and balanced
+            underline_y = y_center + 1.3
+            underline_start_x = center_x - 0.8
+            underline_end_x = center_x + 0.8
+
+            dwg.add(
+                dwg.path(
+                    d=f"M {underline_start_x} {underline_y} L {underline_end_x} {underline_y}",
+                    stroke="black",
+                    stroke_width=stroke_width,
+                )
+            )
+
         # --- Header & Mini Calendar ---
 
         # Left Page Header: Month and Year
@@ -189,7 +228,16 @@ def generate_planners(year=2025, output_dir="output_2025"):
             next_month = 1
             next_month_year += 1
 
-        def draw_mini_calendar(m, y, start_x, start_y, width, cell_height=2.4):
+        def draw_mini_calendar(
+            m,
+            y,
+            start_x,
+            start_y,
+            width,
+            dwg_obj,
+            cell_height=2.4,
+            country_holidays={},
+        ):
             # Title
             m_name = calendar.month_name[m]
             draw_hershey_text(
@@ -233,6 +281,26 @@ def generate_planners(year=2025, output_dir="output_2025"):
                             align="center",
                         )
 
+                        # Check for Sunday or Holiday
+                        current_date = datetime.date(y, m, day_num)
+                        is_saturday = current_date.weekday() == 5  # 5=Saturday
+                        is_sunday = current_date.weekday() == 6  # 6=Sunday
+                        is_holiday = current_date in country_holidays
+
+                        if is_sunday or is_holiday or is_saturday:
+                            # Draw underline
+                            # Fixed width 2.0mm (center +/- 1.0) for balance
+                            underline_y = cy + 1.2
+                            underline_start_x = cx - 0.8
+                            underline_end_x = cx + 0.8
+                            dwg_obj.add(
+                                dwg_obj.path(
+                                    d=f"M {underline_start_x} {underline_y} L {underline_end_x} {underline_y}",
+                                    stroke="black",
+                                    stroke_width=0.15,
+                                )
+                            )
+
         # Position Mini Calendar aligned to Right Grid Edge
         # Width 21mm (Intermediate spacing)
         mini_cal_width = 21
@@ -262,7 +330,9 @@ def generate_planners(year=2025, output_dir="output_2025"):
             mini_cal_x,
             mini_cal_y,
             mini_cal_width,
+            dwg,
             cell_height=mini_cal_cell_height,
+            country_holidays=country_holidays,
         )
 
         # --- Grid Calculation ---
@@ -354,6 +424,17 @@ def generate_planners(year=2025, output_dir="output_2025"):
                 stroke_width=0.2,
             )
 
+            # Check for Sunday or Holiday
+            current_date = datetime.date(year, month, day)
+            is_saturday = current_date.weekday() == 5  # 5=Saturday
+            is_sunday = current_date.weekday() == 6  # 6=Sunday
+            is_holiday = current_date in country_holidays
+
+            if is_sunday or is_holiday or is_saturday:
+                draw_holiday_underline(
+                    dwg, LEFT_GROUP_X + REL_X_NUM, y_center, day
+                )
+
             # Day Initial
             draw_hershey_text(
                 day_initial,
@@ -388,6 +469,11 @@ def generate_planners(year=2025, output_dir="output_2025"):
                 hf_small,
                 stroke_width=0.2,
             )
+
+            if is_sunday or is_holiday or is_saturday:
+                draw_holiday_underline(
+                    dwg, RIGHT_GROUP_X + REL_X_NUM, y_center, day
+                )
 
             # Day Initial
             draw_hershey_text(
@@ -444,8 +530,10 @@ def generate_planners(year=2025, output_dir="output_2025"):
 if __name__ == "__main__":
     # Default to current year
     target_year = datetime.datetime.now().year
+    target_country = "CL"
 
-    # Check for command line argument
+    # Check for command line arguments
+    # Usage: python3 generate_planners.py [year] [country_code]
     if len(sys.argv) > 1:
         try:
             target_year = int(sys.argv[1])
@@ -454,8 +542,15 @@ if __name__ == "__main__":
                 f"Invalid year provided: {sys.argv[1]}. Using default: {target_year}"
             )
 
+    if len(sys.argv) > 2:
+        target_country = sys.argv[2].upper()
+
     output_directory = f"output_{target_year}"
     print(
-        f"Generating planners for year {target_year} in {output_directory}..."
+        f"Generating planners for year {target_year}, country {target_country} in {output_directory}..."
     )
-    generate_planners(year=target_year, output_dir=output_directory)
+    generate_planners(
+        year=target_year,
+        country_code=target_country,
+        output_dir=output_directory,
+    )

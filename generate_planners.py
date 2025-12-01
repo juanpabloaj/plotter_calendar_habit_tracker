@@ -44,7 +44,7 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
     LEFT_GROUP_Y = 32  # Lowered to 32mm
 
     # Right Page (Schedule) Group Position
-    RIGHT_GROUP_X = 177
+    RIGHT_GROUP_X = 157
     RIGHT_GROUP_Y = 32  # Lowered to 32mm
 
     # Grid Dimensions
@@ -60,9 +60,9 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
     LEFT_COL_WIDTH = 5
     LEFT_GRID_WIDTH = LEFT_GRID_COLS * LEFT_COL_WIDTH
 
-    # Right Grid: 4 columns of 20mm
+    # Right Grid: 4 columns of 25mm
     RIGHT_GRID_COLS = 4
-    RIGHT_COL_WIDTH = 20
+    RIGHT_COL_WIDTH = 25
     RIGHT_GRID_WIDTH = RIGHT_GRID_COLS * RIGHT_COL_WIDTH
 
     # Iterate through months

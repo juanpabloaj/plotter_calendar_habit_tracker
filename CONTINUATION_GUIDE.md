@@ -15,7 +15,10 @@ The goal is to generate monthly planners in **SVG** format optimized for **plott
     *   Structural lines every 4 columns (0.2mm), internal lines (0.1mm).
     *   **Alignment**: Header text (Month/Year) is visually aligned with the start of the day numbers (`LEFT_GROUP_X + 2mm`).
 *   **Right Page (Schedule)**:
-    *   4-column grid (20mm each, Total 80mm).
+    *   **Right Grid (Planner)**:
+        *   Start X: 157mm (Widened to left, fixed right margin).
+        *   Columns: 4 columns of 25mm width (Total 100mm).
+        *   Content: Day number, Initial, Empty space.
     *   **Mini-Calendar**: Located in the top right corner.
         *   Right alignment with the grid edge.
         *   Dynamic bottom alignment: The bottom edge of the calendar always aligns with the bottom edge of the Year text.
@@ -73,4 +76,4 @@ I am working on a script (`generate_planners.py`) that generates A4 landscape mo
     *   Default: Chile (CL).
     *   Configurable via `--country` argument.
     *   Visual: Single underline below the day number (Stroke width 0.15mm, implemented as Path).
-    *   Logic: Marks Sundays, Saturdays, and Holidays. Applied to BOTH Left (Habit Tracker) and Right (Planner) grids.
+    *   Logic: Marks Sundays and Holidays only (Saturdays excluded). Applied to BOTH Left (Habit Tracker) and Right (Planner) grids.

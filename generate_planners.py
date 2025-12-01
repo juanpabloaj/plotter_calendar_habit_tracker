@@ -29,7 +29,6 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
     hf_small.load_default_font(
         "futural"
     )  # Futura Light for small text (cleaner, narrower)
-
     # A4 Landscape dimensions in mm
     WIDTH_MM = 297
     HEIGHT_MM = 210
@@ -54,6 +53,9 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
     REL_X_NUM = 4
     REL_X_INITIAL = 7
     REL_X_GRID_START = 10
+    REL_X_WEEK_NUM_RIGHT = (
+        0  # Week number anchor for right page, pushed further left for spacing
+    )
 
     # Left Grid: 16 columns of 5mm (4 blocks of 4) = 80mm width
     LEFT_GRID_COLS = 16
@@ -409,7 +411,8 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
             y_bottom = y_pos + ROW_HEIGHT
 
             # Date info
-            weekday_idx = calendar.weekday(year, month, day)
+            current_date = datetime.date(year, month, day)
+            weekday_idx = current_date.weekday()
             day_initial = calendar.day_name[weekday_idx][0]
 
             # --- Left Page Content ---
@@ -425,7 +428,6 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
             )
 
             # Check for Sunday or Holiday
-            current_date = datetime.date(year, month, day)
             is_saturday = current_date.weekday() == 5  # 5=Saturday
             is_sunday = current_date.weekday() == 6  # 6=Sunday
             is_holiday = current_date in country_holidays
@@ -461,6 +463,17 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
 
             # --- Right Page Content ---
             # Day Number
+            if weekday_idx == 0:
+                week_number = current_date.isocalendar()[1]
+                draw_number_monospaced(
+                    week_number,
+                    RIGHT_GROUP_X + REL_X_WEEK_NUM_RIGHT,
+                    y_center,
+                    1.2,
+                    hf_small,
+                    stroke_width=0.16,
+                )
+
             draw_number_monospaced(
                 day,
                 RIGHT_GROUP_X + REL_X_NUM,

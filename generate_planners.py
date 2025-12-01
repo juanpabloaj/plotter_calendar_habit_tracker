@@ -463,7 +463,7 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
 
             # --- Right Page Content ---
             # Day Number
-            if weekday_idx == 0:
+            if weekday_idx == 0 and False:
                 week_number = current_date.isocalendar()[1]
                 draw_number_monospaced(
                     week_number,

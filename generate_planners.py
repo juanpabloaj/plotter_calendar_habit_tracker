@@ -264,7 +264,19 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
         )
         dwg.viewbox(0, 0, WIDTH_MM, HEIGHT_MM)
 
-        # --- Header & Mini Calendar ---
+        # --- Grid Calculation ---
+        num_days = calendar.monthrange(year, month)[1]
+
+        # ====================================================================
+        # PLOTTER PATH ORDER: draw the ENTIRE left page first, then the
+        # ENTIRE right page. This keeps the pen on one half of the sheet at a
+        # time instead of jumping left<->right on every row, which avoids
+        # smudges/scratches and reduces total plotting time.
+        # ====================================================================
+
+        # ====================================================================
+        # LEFT PAGE (Habit Tracker)
+        # ====================================================================
 
         # Left Page Header: Month and Year
         # Stacked: Month Name (Even Smaller) on top, Year (Tiny) below
@@ -291,6 +303,116 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
             stroke_width=0.25,
             align="left",
         )
+
+        # Vertical Lines
+        dwg.add(
+            dwg.line(
+                start=(LEFT_GROUP_X + REL_X_GRID_START, LEFT_GROUP_Y),
+                end=(
+                    LEFT_GROUP_X + REL_X_GRID_START,
+                    LEFT_GROUP_Y + num_days * ROW_HEIGHT,
+                ),
+                stroke="black",
+                stroke_width=0.2,
+            )
+        )  # Structural 0.2
+
+        for i in range(1, LEFT_GRID_COLS + 1):
+            # User Requirement: 4 Main Blocks (16 cols total).
+            # First 3 blocks (cols 1-12) have internal lines.
+            # 4th block (cols 13-16) has NO internal lines.
+            # Structural lines at 4, 8, 12, 16.
+
+            is_structural = i % 4 == 0
+            is_internal = not is_structural
+
+            # Draw if it's structural OR (it's internal AND we are in the first 3 blocks)
+            if is_structural or (is_internal and i < 12):
+                x = LEFT_GROUP_X + REL_X_GRID_START + i * LEFT_COL_WIDTH
+                stroke = 0.2 if is_structural else 0.1
+                dwg.add(
+                    dwg.line(
+                        start=(x, LEFT_GROUP_Y),
+                        end=(x, LEFT_GROUP_Y + num_days * ROW_HEIGHT),
+                        stroke="black",
+                        stroke_width=stroke,
+                    )
+                )
+
+        # Rows (Left): numbers, initials, holiday underlines, horizontal lines
+        for day in range(1, num_days + 1):
+            y_pos = LEFT_GROUP_Y + (day - 1) * ROW_HEIGHT
+            y_center = y_pos + ROW_HEIGHT / 2
+            y_bottom = y_pos + ROW_HEIGHT
+
+            # Date info
+            current_date = datetime.date(year, month, day)
+            weekday_idx = current_date.weekday()
+            day_initial = calendar.day_name[weekday_idx][0]
+
+            is_saturday = current_date.weekday() == 5  # 5=Saturday
+            is_sunday = current_date.weekday() == 6  # 6=Sunday
+            is_holiday = current_date in country_holidays
+
+            # Day Number (Monospaced, Right Aligned)
+            # Size 1.5mm, Futura Light, Stroke 0.2mm
+            draw_number_monospaced(
+                dwg,
+                day,
+                LEFT_GROUP_X + REL_X_NUM,
+                y_center,
+                1.5,
+                hf_small,
+                stroke_width=0.2,
+            )
+
+            # Underline for Sunday / Saturday / Holiday
+            if is_sunday or is_holiday or is_saturday:
+                draw_holiday_underline(
+                    dwg, LEFT_GROUP_X + REL_X_NUM, y_center, day
+                )
+
+            # Day Initial
+            draw_hershey_text(
+                dwg,
+                day_initial,
+                LEFT_GROUP_X + REL_X_INITIAL,
+                y_center,
+                1.5,
+                hf_small,
+                stroke_width=0.2,
+                align="center",
+            )
+
+            # Horizontal Line (Left)
+            dwg.add(
+                dwg.line(
+                    start=(LEFT_GROUP_X + REL_X_GRID_START, y_bottom),
+                    end=(
+                        LEFT_GROUP_X + REL_X_GRID_START + LEFT_GRID_WIDTH,
+                        y_bottom,
+                    ),
+                    stroke="black",
+                    stroke_width=0.1,
+                )
+            )  # Internal 0.1
+
+        # Top Border Line (Left)
+        dwg.add(
+            dwg.line(
+                start=(LEFT_GROUP_X + REL_X_GRID_START, LEFT_GROUP_Y),
+                end=(
+                    LEFT_GROUP_X + REL_X_GRID_START + LEFT_GRID_WIDTH,
+                    LEFT_GROUP_Y,
+                ),
+                stroke="black",
+                stroke_width=0.2,
+            )
+        )  # Structural 0.2
+
+        # ====================================================================
+        # RIGHT PAGE (Schedule)
+        # ====================================================================
 
         # Right Page: Mini Calendar (Next Month)
         next_month = month + 1
@@ -333,46 +455,6 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
             country_holidays=country_holidays,
         )
 
-        # --- Grid Calculation ---
-        num_days = calendar.monthrange(year, month)[1]
-
-        # --- Left Page (Habit Tracker) ---
-        # Vertical Lines
-        dwg.add(
-            dwg.line(
-                start=(LEFT_GROUP_X + REL_X_GRID_START, LEFT_GROUP_Y),
-                end=(
-                    LEFT_GROUP_X + REL_X_GRID_START,
-                    LEFT_GROUP_Y + num_days * ROW_HEIGHT,
-                ),
-                stroke="black",
-                stroke_width=0.2,
-            )
-        )  # Structural 0.2
-
-        for i in range(1, LEFT_GRID_COLS + 1):
-            # User Requirement: 4 Main Blocks (16 cols total).
-            # First 3 blocks (cols 1-12) have internal lines.
-            # 4th block (cols 13-16) has NO internal lines.
-            # Structural lines at 4, 8, 12, 16.
-
-            is_structural = i % 4 == 0
-            is_internal = not is_structural
-
-            # Draw if it's structural OR (it's internal AND we are in the first 3 blocks)
-            if is_structural or (is_internal and i < 12):
-                x = LEFT_GROUP_X + REL_X_GRID_START + i * LEFT_COL_WIDTH
-                stroke = 0.2 if is_structural else 0.1
-                dwg.add(
-                    dwg.line(
-                        start=(x, LEFT_GROUP_Y),
-                        end=(x, LEFT_GROUP_Y + num_days * ROW_HEIGHT),
-                        stroke="black",
-                        stroke_width=stroke,
-                    )
-                )
-
-        # --- Right Page (Schedule) ---
         # Vertical Lines
         dwg.add(
             dwg.line(
@@ -400,7 +482,8 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
                 )
             )
 
-        # --- Rows ---
+        # Rows (Right): week number [disabled], numbers, initials,
+        # underlines, horizontal lines
         for day in range(1, num_days + 1):
             y_pos = LEFT_GROUP_Y + (day - 1) * ROW_HEIGHT
             y_center = y_pos + ROW_HEIGHT / 2
@@ -411,55 +494,10 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
             weekday_idx = current_date.weekday()
             day_initial = calendar.day_name[weekday_idx][0]
 
-            # --- Left Page Content ---
-            # Day Number (Monospaced, Right Aligned)
-            # Size 1.5mm, Futura Light, Stroke 0.2mm
-            draw_number_monospaced(
-                dwg,
-                day,
-                LEFT_GROUP_X + REL_X_NUM,
-                y_center,
-                1.5,
-                hf_small,
-                stroke_width=0.2,
-            )
-
-            # Check for Sunday or Holiday
             is_saturday = current_date.weekday() == 5  # 5=Saturday
             is_sunday = current_date.weekday() == 6  # 6=Sunday
             is_holiday = current_date in country_holidays
 
-            if is_sunday or is_holiday or is_saturday:
-                draw_holiday_underline(
-                    dwg, LEFT_GROUP_X + REL_X_NUM, y_center, day
-                )
-
-            # Day Initial
-            draw_hershey_text(
-                dwg,
-                day_initial,
-                LEFT_GROUP_X + REL_X_INITIAL,
-                y_center,
-                1.5,
-                hf_small,
-                stroke_width=0.2,
-                align="center",
-            )
-
-            # Horizontal Line (Left)
-            dwg.add(
-                dwg.line(
-                    start=(LEFT_GROUP_X + REL_X_GRID_START, y_bottom),
-                    end=(
-                        LEFT_GROUP_X + REL_X_GRID_START + LEFT_GRID_WIDTH,
-                        y_bottom,
-                    ),
-                    stroke="black",
-                    stroke_width=0.1,
-                )
-            )  # Internal 0.1
-
-            # --- Right Page Content ---
             # Day Number
             if weekday_idx == 0 and False:
                 week_number = current_date.isocalendar()[1]
@@ -513,18 +551,7 @@ def generate_planners(year=2025, country_code="CL", output_dir="output_2025"):
                 )
             )  # Internal 0.1
 
-        # Top Border Lines
-        dwg.add(
-            dwg.line(
-                start=(LEFT_GROUP_X + REL_X_GRID_START, LEFT_GROUP_Y),
-                end=(
-                    LEFT_GROUP_X + REL_X_GRID_START + LEFT_GRID_WIDTH,
-                    LEFT_GROUP_Y,
-                ),
-                stroke="black",
-                stroke_width=0.2,
-            )
-        )  # Structural 0.2
+        # Top Border Line (Right)
         dwg.add(
             dwg.line(
                 start=(RIGHT_GROUP_X + REL_X_GRID_START, RIGHT_GROUP_Y),
